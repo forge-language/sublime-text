@@ -1,5 +1,8 @@
 name: Sublime package
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  workflow_call:
 permissions:
   contents: read
 jobs:
@@ -27,6 +30,14 @@ jobs:
           tar -xf /tmp/sublime.tar.xz -C /tmp
       - run: python3 scripts/build-package.py
       - run: python3 scripts/test-sublime.py --sublime /tmp/sublime_text/sublime_text --result /tmp/sublime-result.json
+      - name: Ensure incorrect scopes fail in the optimized plugin host
+        run: |
+          printf 'native main {}\n// <- storage.never.forge\n' > /tmp/negative.fg
+          if python3 scripts/test-sublime.py --sublime /tmp/sublime_text/sublime_text --fixture /tmp/negative.fg --result /tmp/sublime-negative.json; then
+            echo 'Incorrect syntax scopes unexpectedly passed'
+            exit 1
+          fi
+          python3 -c 'import json; r=json.load(open("/tmp/sublime-negative.json")); assert r["errors"] and "does not match storage.never.forge" in r["errors"][0]'
       - uses: actions/upload-artifact@v4
         if: always()
         with:

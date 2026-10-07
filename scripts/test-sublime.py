@@ -87,8 +87,9 @@ def check_syntax():
 def start_lsp():
     try:
         if INSTALL:
-            PackageManager = importlib.import_module('Package Control.package_control.package_manager').PackageManager
-            require(PackageManager().install_package('LSP'), 'Package Control LSP installation failed')
+            PackageTaskRunner = importlib.import_module('Package Control.package_control.package_tasks').PackageTaskRunner
+            PackageTaskRunner().install_packages(['LSP'], unattended=True)
+            require(os.path.isfile(os.path.join(sublime.installed_packages_path(), 'LSP.sublime-package')) or os.path.isdir(os.path.join(sublime.packages_path(), 'LSP')), 'Package Control LSP installation failed')
             state['lsp_provisioned'] = True
             state['installed_packages'] = os.listdir(sublime.installed_packages_path())
             finish()
@@ -159,6 +160,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--sublime', type=Path, required=True, help='Official Linux sublime_text executable')
     parser.add_argument('--archive', type=Path, default=ROOT / 'dist/LSP-Forge.sublime-package')
+    parser.add_argument('--fixture', type=Path, default=ROOT / 'tests/syntax_test_forge.fg', help='Syntax fixture for positive or negative editor validation')
     parser.add_argument('--lsp-command-json', default='["forge-lsp"]', help='Server argv for temporary user settings')
     parser.add_argument('--profile-packages', type=Path, help='Existing isolated Data directory containing LSP and its libraries; copied, never modified')
     parser.add_argument('--package-control', type=Path, help='Package Control archive to install into the disposable profile')
@@ -198,7 +200,7 @@ def main():
         (harness / '.python-version').write_text('3.8')
         (harness / 'integration.py').write_text(HARNESS)
         fixture = harness / 'syntax_test_forge.fg'
-        shutil.copy2(ROOT / 'tests/syntax_test_forge.fg', fixture)
+        shutil.copy2(args.fixture, fixture)
         source = root / 'main.fg'
         source.write_text('native main {\n    println("hello");\n}\n')
         result = root / 'result.json'
