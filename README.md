@@ -76,6 +76,7 @@ Build/run actions execute only when explicitly invoked. Commands use argument ar
 ```sh
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 python3 scripts/build-package.py
+python3 scripts/test-sublime.py --sublime /path/to/sublime_text/sublime_text
 ```
 
 The build writes `dist/LSP-Forge.sublime-package` and its SHA-256 file from an explicit resource list with fixed archive timestamps. Development scripts, tests, credentials and caches are excluded. See `scripts/test-sublime.py` for isolated real-editor checks; the syntax fixture is `tests/syntax_test_forge.fg`.
