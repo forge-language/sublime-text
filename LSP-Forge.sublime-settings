@@ -1,0 +1,21 @@
+{
+    "enabled": true,
+    "command": ["forge-lsp"],
+    "selector": "source.forge",
+    "initialization_options": {
+        "forge": {
+            "path": "forge",
+            "includePaths": [],
+            "forgeRoot": "",
+            "libDir": ""
+        }
+    },
+    "settings": {
+        "forge": {
+            "path": "forge",
+            "includePaths": [],
+            "forgeRoot": "",
+            "libDir": ""
+        }
+    }
+}

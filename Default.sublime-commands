@@ -1,0 +1,10 @@
+[
+    {
+        "caption": "LSP-Forge: Settings",
+        "command": "edit_settings",
+        "args": {
+            "base_file": "${packages}/LSP-Forge/LSP-Forge.sublime-settings",
+            "default": "{\n\t\"command\": [\"forge-lsp\"]\n}\n"
+        }
+    }
+]

@@ -1,0 +1,23 @@
+name: Publish Sublime package
+on:
+  push:
+    tags: ['v[0-9]*']
+permissions:
+  contents: read
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'
+      - run: python -m unittest discover -s tests -p 'test_*.py' -v
+      - run: python scripts/build-package.py
+      - name: Publish archive and checksum
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "LSP-Forge $GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md
