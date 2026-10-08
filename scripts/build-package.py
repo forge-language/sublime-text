@@ -7,15 +7,13 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 FILES = [
     '.python-version', 'LICENSE', 'README.md', 'LSP-Forge.py',
-    'LSP-Forge.sublime-settings', 'Forge.sublime-syntax',
-    'Forge.sublime-settings', 'Forge.sublime-build',
-    'Comments.tmPreferences',
+    'LSP-Forge.sublime-settings',
     'Main.sublime-menu', 'Default.sublime-commands',
 ]
 
 
 def build():
-    files = FILES + sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'snippets').glob('*.sublime-snippet'))
+    files = FILES
     target = ROOT / 'dist' / 'LSP-Forge.sublime-package'
     target.parent.mkdir(exist_ok=True)
     temporary = target.with_suffix('.tmp')

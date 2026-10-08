@@ -2,7 +2,6 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
-import tempfile
 import unittest
 import zipfile
 
@@ -20,7 +19,8 @@ class PackageTests(unittest.TestCase):
         self.assertEqual(first, archive.read_bytes())
         with zipfile.ZipFile(archive) as package:
             self.assertIsNone(package.testzip())
-            self.assertIn('Forge.sublime-syntax', package.namelist())
+            self.assertFalse(any(name.endswith(('.sublime-syntax', '.sublime-snippet', '.sublime-build', '.tmPreferences')) for name in package.namelist()))
+            self.assertNotIn('Forge.sublime-settings', package.namelist())
             self.assertIn('LSP-Forge.py', package.namelist())
             self.assertFalse(any(name.startswith(('tests/', 'scripts/', '.git/', 'build/')) for name in package.namelist()))
             self.assertNotIn('package-metadata.json', package.namelist())
@@ -36,14 +36,6 @@ class PackageTests(unittest.TestCase):
         self.assertEqual(package['details'], 'https://github.com/forge-language/sublime-text')
         self.assertTrue(package['releases'][0]['tags'])
         self.assertEqual(package['releases'][0]['sublime_text'], '>=4132')
-
-    def test_build_commands_do_not_use_shell(self):
-        config = json.loads((ROOT / 'Forge.sublime-build').read_text())
-        for item in [config] + config.get('variants', []):
-            self.assertNotIn('shell_cmd', item)
-            self.assertFalse(item.get('shell', False))
-            self.assertIsInstance(item['cmd'], list)
-            self.assertEqual(item['cmd'][0], 'forge')
 
 
 if __name__ == '__main__':

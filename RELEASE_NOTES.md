@@ -1,11 +1,7 @@
-Forge support for Sublime Text 4:
+# LSP-Forge 0.2.0
 
-- `.fg` syntax highlighting, comment toggling, snippets and build commands.
-- Forge language-server integration through the Sublime LSP package.
-- Diagnostics, completion, hover and document symbols from the installed Forge server.
-- Apache License 2.0; no automatic server downloads or project code execution.
+- Migrate to Sublime LSP's `LspPlugin` API and automatic settings loading.
+- Move syntax, snippets, comment settings and build commands to the independent [Forge package](https://github.com/forge-language/sublime-syntax).
+- Correct the Preferences command caption.
 
-Install `LSP-Forge.sublime-package` in Sublime Text's `Installed Packages` folder.
-For language-server features, install the `LSP` package and put `forge-lsp` on PATH,
-or configure an absolute server command in **Preferences: LSP-Forge Settings**.
-See the repository README for setup and the Package Control repository URL.
+Install **Forge** and **LSP** separately. Project LSP client keys previously named `forge` must become `LSP-Forge`; server-specific `settings.forge` and `initialization_options.forge` remain unchanged. The server is still installed manually.

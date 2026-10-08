@@ -1,6 +1,6 @@
 [
     {
-        "caption": "LSP-Forge: Settings",
+        "caption": "Preferences: LSP-Forge Settings",
         "command": "edit_settings",
         "args": {
             "base_file": "${packages}/LSP-Forge/LSP-Forge.sublime-settings",

@@ -1,41 +1,29 @@
-"""Register the manually installed Forge server with Sublime Text's LSP package."""
-import sublime
-
-SETTINGS_FILE = "LSP-Forge.sublime-settings"
-SETTINGS_RESOURCE = "Packages/LSP-Forge/" + SETTINGS_FILE
+"""Connect a manually installed Forge server through Sublime Text's LSP package."""
 _registered = False
 
 try:
-    from LSP.plugin import AbstractPlugin, register_plugin, unregister_plugin
+    from LSP.plugin import LspPlugin
 except ImportError:
-    # Syntax resources do not require LSP. Installing/enabling LSP and reloading
-    # this package enables server support without downloading any executable.
     ForgeLspPlugin = None
 else:
-    class ForgeLspPlugin(AbstractPlugin):
-        @classmethod
-        def name(cls):
-            return "forge"
-
-        @classmethod
-        def configuration(cls):
-            # Let LSP merge user settings and expand its supported variables.
-            # Preserve explicit command arrays; never infer a project command.
-            return sublime.load_settings(SETTINGS_FILE), SETTINGS_RESOURCE
+    class ForgeLspPlugin(LspPlugin):
+        # LSP derives the session name and settings resource from LSP-Forge.
+        # Server installation and command selection remain under user control.
+        pass
 
 
 def plugin_loaded():
     global _registered
     if ForgeLspPlugin is None:
-        print("LSP-Forge: LSP is unavailable; Forge syntax remains enabled. "
-              "Install or enable LSP, then reload LSP-Forge.")
+        print("LSP-Forge: LSP is unavailable. Install, update or enable LSP, "
+              "then reload LSP-Forge.")
     elif not _registered:
-        register_plugin(ForgeLspPlugin)
+        ForgeLspPlugin.register()
         _registered = True
 
 
 def plugin_unloaded():
     global _registered
     if _registered:
-        unregister_plugin(ForgeLspPlugin)
+        ForgeLspPlugin.unregister()
         _registered = False

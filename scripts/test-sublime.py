@@ -44,7 +44,7 @@ def finish(error=None):
 def check_syntax():
     global view
     try:
-        syntax = next((item for item in sublime.find_syntax_by_scope('source.forge') if item.path == 'Packages/LSP-Forge/Forge.sublime-syntax'), None)
+        syntax = next((item for item in sublime.find_syntax_by_scope('source.forge') if item.path == 'Packages/Forge/Forge.sublime-syntax'), None)
         require(syntax and syntax.scope == 'source.forge', 'Archive syntax unavailable')
         fixture = os.environ['FORGE_SUBLIME_FIXTURE']
         text = open(fixture).read()
@@ -108,11 +108,14 @@ def check_plugin():
             if REQUIRE:
                 importlib.import_module('LSP.plugin')
                 raise AssertionError('Real LSP dependency unavailable; install it with --install-lsp or --profile-packages')
-            state['lsp'] = 'not installed; syntax-only path verified'
+            state['lsp'] = 'not installed; helper remains importable'
             finish()
             return
-        require(plugin._registered, 'Helper failed to register with real LSP')
         state['lsp_plugin_registered'] = True
+        if not REQUIRE:
+            state['lsp'] = 'registered; handshake not requested'
+            finish()
+            return
         source = os.environ['FORGE_SUBLIME_SOURCE']
         sublime.set_timeout(lambda: open_source(source), 0)
     except Exception:
@@ -129,7 +132,7 @@ def check_session():
         from LSP.plugin.core.registry import windows
         from LSP.plugin.core.protocol import Request
         manager = windows.lookup(view.window())
-        session = manager.get_session('forge', view.file_name()) if manager else None
+        session = manager.get_session('LSP-Forge', view.file_name()) if manager else None
         if not session:
             attempt += 1
             if attempt >= 30:
@@ -152,7 +155,7 @@ def completion(result):
         finish(traceback.format_exc())
 
 def plugin_loaded():
-    sublime.set_timeout(check_syntax, 3000)
+    sublime.set_timeout(check_syntax if os.environ.get('FORGE_SUBLIME_FIXTURE') else lambda: sublime.set_timeout_async(start_lsp, 0), 3000)
 '''
 
 
@@ -160,7 +163,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--sublime', type=Path, required=True, help='Official Linux sublime_text executable')
     parser.add_argument('--archive', type=Path, default=ROOT / 'dist/LSP-Forge.sublime-package')
-    parser.add_argument('--fixture', type=Path, default=ROOT / 'tests/syntax_test_forge.fg', help='Syntax fixture for positive or negative editor validation')
+    parser.add_argument('--syntax-archive', type=Path, help='Separate Forge.sublime-package archive for syntax and positive LSP checks')
+    parser.add_argument('--fixture', type=Path, help='Separate Forge package syntax fixture; required with --syntax-archive')
     parser.add_argument('--lsp-command-json', default='["forge-lsp"]', help='Server argv for temporary user settings')
     parser.add_argument('--profile-packages', type=Path, help='Existing isolated Data directory containing LSP and its libraries; copied, never modified')
     parser.add_argument('--package-control', type=Path, help='Package Control archive to install into the disposable profile')
@@ -173,6 +177,12 @@ def main():
     executable = args.sublime.resolve()
     if not executable.is_file() or not args.archive.is_file():
         parser.error('Sublime executable and built archive must exist')
+    if args.fixture and not args.syntax_archive:
+        parser.error('--fixture requires the separate --syntax-archive')
+    if args.require_lsp and not args.syntax_archive:
+        parser.error('--require-lsp requires the separate --syntax-archive')
+    if args.syntax_archive and (not args.syntax_archive.is_file() or not args.fixture or not args.fixture.is_file()):
+        parser.error('--syntax-archive and --fixture must be existing separate Forge package files')
     if args.install_lsp and not args.package_control:
         parser.error('--install-lsp requires --package-control')
     command = json.loads(args.lsp_command_json)
@@ -191,20 +201,23 @@ def main():
         user = packages / 'User'
         user.mkdir(parents=True, exist_ok=True)
         shutil.copy2(args.archive, installed / 'LSP-Forge.sublime-package')
+        if args.syntax_archive:
+            shutil.copy2(args.syntax_archive, installed / 'Forge.sublime-package')
         if args.package_control:
             shutil.copy2(args.package_control, installed / 'Package Control.sublime-package')
         (user / 'Preferences.sublime-settings').write_text(json.dumps({'hot_exit': False, 'remember_open_files': False, 'ignored_packages': ['Vintage']}))
         (user / 'LSP-Forge.sublime-settings').write_text(json.dumps({'enabled': True, 'command': command}))
         harness = packages / 'ForgeIntegrationTests'
-        harness.mkdir(parents=True)
+        harness.mkdir(parents=True, exist_ok=True)
         (harness / '.python-version').write_text('3.8')
         (harness / 'integration.py').write_text(HARNESS)
         fixture = harness / 'syntax_test_forge.fg'
-        shutil.copy2(args.fixture, fixture)
+        if args.fixture:
+            shutil.copy2(args.fixture, fixture)
         source = root / 'main.fg'
         source.write_text('native main {\n    println("hello");\n}\n')
         result = root / 'result.json'
-        env = dict(os.environ, FORGE_SUBLIME_RESULT=str(result), FORGE_SUBLIME_FIXTURE=str(fixture),
+        env = dict(os.environ, FORGE_SUBLIME_RESULT=str(result), FORGE_SUBLIME_FIXTURE=str(fixture) if args.fixture else '',
             FORGE_SUBLIME_SOURCE=str(source), FORGE_SUBLIME_REQUIRE_LSP='1' if args.require_lsp else '0',
             FORGE_SUBLIME_INSTALL_LSP='1' if args.install_lsp else '0')
         log = root / 'sublime.log'

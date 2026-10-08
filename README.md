@@ -1,8 +1,12 @@
 # LSP-Forge
 
-Forge language support for Sublime Text 4 (build 4132 or newer), licensed under Apache 2.0.
+Forge language-server integration for Sublime Text 4 (build 4132 or newer), licensed under Apache 2.0.
 
-The package provides `.fg` syntax highlighting, comment toggling, snippets, project build/run commands and integration with the [Forge language server](https://github.com/forge-language/language-server). Diagnostics, completion, hover and document symbols require the separately installed **LSP** package, Forge compiler and language server. Syntax highlighting works without them.
+This package uses Sublime LSP's `LspPlugin` API for diagnostics, completion, hover and document symbols. Install the independent [Forge syntax package](https://github.com/forge-language/sublime-syntax), **LSP**, and a Forge language server. Syntax highlighting, snippets and build commands belong to **Forge**, which works without LSP.
+
+## Upgrade from 0.1.0
+
+Install **Forge** before upgrading to 0.2.0; syntax and editor resources have moved out of LSP-Forge. If your project configures an LSP client under the old name `forge`, rename that client key to `LSP-Forge`. Server options inside `settings.forge` and `initialization_options.forge` keep their names. Remove any old unpacked development copy before installing the new archive.
 
 ## Install
 
@@ -14,7 +18,7 @@ Until the package is accepted into the default channel, run **Package Control: A
 https://raw.githubusercontent.com/forge-language/sublime-text/main/packages.json
 ```
 
-Then run **Package Control: Install Package** and select **LSP-Forge**. Install **LSP** separately for language-server features. GitHub version tags provide subsequent package updates.
+Then run **Package Control: Install Package** and select **LSP-Forge**. Install **LSP** and the separate **Forge** syntax package as well. GitHub version tags provide subsequent package updates.
 
 ### Release file
 
@@ -63,22 +67,18 @@ The separately built TypeScript server is also supported:
 
 Build it with `npm ci && npm run build` in the [language-server repository](https://github.com/forge-language/language-server#typescript-server), using Node.js 18 or newer. This is an alternative to the native server, not a bundled npm dependency.
 
-The syntax package is platform independent. Compiler/server availability depends on their supported platforms; the current public Forge SDK targets Linux x86-64 with glibc 2.35 or newer.
-
-## Build and run
-
-Open a Forge project folder and select **Tools > Build System > Forge**. The default build runs `forge build`; variants provide **Check File** and **Run Project**. Project commands use the Sublime project directory, first open folder, or current file directory as a fallback. For a multi-folder project, select the intended project root. Check File parses the saved file using `forge FILE --check`; it is not a substitute for building/linking the project.
-
-Build/run actions execute only when explicitly invoked. Commands use argument arrays rather than a shell. Review package source and grant any Forge native/npm trust required by your dependencies before building or running them. The plugin does not install dependencies, grant trust or evaluate repository settings itself.
+The separate Forge syntax package is platform independent. Compiler/server availability depends on their supported platforms; the current public Forge SDK targets Linux x86-64 with glibc 2.35 or newer.
 
 ## Develop and release
 
 ```sh
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 python3 scripts/build-package.py
-python3 scripts/test-sublime.py --sublime /path/to/sublime_text/sublime_text
+python3 scripts/test-sublime.py --sublime /path/to/sublime_text/sublime_text \
+  --syntax-archive ../sublime-syntax/dist/Forge.sublime-package \
+  --fixture ../sublime-syntax/tests/syntax_test_forge.fg
 ```
 
-The build writes `dist/LSP-Forge.sublime-package` and its SHA-256 file from an explicit resource list with fixed archive timestamps. Development scripts, tests, credentials and caches are excluded. See `scripts/test-sublime.py` for isolated real-editor checks; the syntax fixture is `tests/syntax_test_forge.fg`.
+The build writes `dist/LSP-Forge.sublime-package` and its SHA-256 file from an explicit resource list with fixed archive timestamps. Development scripts, tests, credentials and caches are excluded. See `scripts/test-sublime.py` for isolated real-editor checks; the syntax fixture is maintained in the independent syntax repository.
 
-Main/PR CI validates and builds the archive. Pushing a semantic version tag such as `v0.1.0` runs validation and publishes a GitHub Release with the package and checksum. Default-channel submission follows [Package Control's submission process](https://packages.sublimetext.com/docs/submitting_a_package).
+Main/PR CI validates and builds the archive. Pushing a semantic version tag such as `v0.2.0` runs validation and publishes a GitHub Release with the package and checksum. Default-channel submission follows [Package Control's submission process](https://packages.sublimetext.com/docs/submitting_a_package).
