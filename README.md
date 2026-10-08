@@ -6,7 +6,7 @@ This package uses Sublime LSP's `LspPlugin` API for diagnostics, completion, hov
 
 ## Upgrade from 0.1.0
 
-Install **Forge** before upgrading to 0.2.0; syntax and editor resources have moved out of LSP-Forge. If your project configures an LSP client under the old name `forge`, rename that client key to `LSP-Forge`. Server options inside `settings.forge` and `initialization_options.forge` keep their names. Remove any old unpacked development copy before installing the new archive.
+Install **Forge** before upgrading to 0.2.0; syntax and editor resources have moved out of LSP-Forge. If your project configures an LSP client under the old name `forge`, rename that client key to `LSP-Forge`. Server options keep their names inside `settings.forge`. Move any overrides from `initialization_options.forge` to `settings.forge` and remove the old initialization overrides; `settings.forge` is now authoritative. Remove any old unpacked development copy before installing the new archive.
 
 ## Install
 
@@ -40,12 +40,6 @@ Sublime Text launched from the desktop may have a different PATH than a terminal
 ```json
 {
   "command": ["/absolute/path/to/forge-lsp"],
-  "initialization_options": {
-    "forge": {
-      "path": "/absolute/path/to/forge",
-      "includePaths": ["/absolute/path/to/project/modules"]
-    }
-  },
   "settings": {
     "forge": {
       "path": "/absolute/path/to/forge",
@@ -55,7 +49,7 @@ Sublime Text launched from the desktop may have a different PATH than a terminal
 }
 ```
 
-The native server reads `initialization_options.forge`; the TypeScript server also receives `settings.forge` configuration updates. Keep both aligned when overriding paths. Optional `forgeRoot` and `libDir` belong inside these Forge objects only when using a custom toolchain layout. The default command is `forge-lsp`; no server is downloaded or built automatically.
+Configure compiler options only in `settings.forge`. At startup, the plugin copies that object to the initialization options used by both servers. The TypeScript server also reads subsequent configuration updates; restart the native server after changing compiler settings. Optional `forgeRoot` and `libDir` belong in `settings.forge` when using a custom toolchain layout. The default settings file includes comments explaining each option. The default command is `forge-lsp`; no server is downloaded or built automatically.
 
 The separately built TypeScript server is also supported:
 

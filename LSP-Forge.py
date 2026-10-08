@@ -1,28 +1,28 @@
 """Connect a manually installed Forge server through Sublime Text's LSP package."""
+from copy import deepcopy
+
+from LSP.plugin import LspPlugin, OnPreStartContext
+
 _registered = False
 
-try:
-    from LSP.plugin import LspPlugin
-except ImportError:
-    ForgeLspPlugin = None
-else:
-    class ForgeLspPlugin(LspPlugin):
-        # LSP derives the session name and settings resource from LSP-Forge.
-        # Server installation and command selection remain under user control.
-        pass
+
+class ForgeLspPlugin(LspPlugin):
+    @classmethod
+    def on_pre_start_async(cls, context: OnPreStartContext) -> None:
+        # Native Forge reads initialization options; TypeScript also reads
+        # configuration updates. Users configure both through settings.forge.
+        config = context.configuration
+        config.initialization_options.set("forge", deepcopy(config.settings.get("forge", {})))
 
 
-def plugin_loaded():
+def plugin_loaded() -> None:
     global _registered
-    if ForgeLspPlugin is None:
-        print("LSP-Forge: LSP is unavailable. Install, update or enable LSP, "
-              "then reload LSP-Forge.")
-    elif not _registered:
+    if not _registered:
         ForgeLspPlugin.register()
         _registered = True
 
 
-def plugin_unloaded():
+def plugin_unloaded() -> None:
     global _registered
     if _registered:
         ForgeLspPlugin.unregister()

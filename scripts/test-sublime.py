@@ -101,16 +101,16 @@ def start_lsp():
 def check_plugin():
     global attempt
     try:
+        if not REQUIRE:
+            try:
+                importlib.import_module('LSP.plugin')
+            except ImportError:
+                state['lsp'] = 'required dependency not installed; plugin checks skipped'
+                finish()
+                return
         plugin = importlib.import_module('LSP-Forge.LSP-Forge')
         require(hasattr(plugin, 'plugin_loaded') and hasattr(plugin, 'plugin_unloaded'), 'Archive plugin missing')
         state['archive_plugin_loaded'] = True
-        if plugin.ForgeLspPlugin is None:
-            if REQUIRE:
-                importlib.import_module('LSP.plugin')
-                raise AssertionError('Real LSP dependency unavailable; install it with --install-lsp or --profile-packages')
-            state['lsp'] = 'not installed; helper remains importable'
-            finish()
-            return
         state['lsp_plugin_registered'] = True
         if not REQUIRE:
             state['lsp'] = 'registered; handshake not requested'
@@ -139,6 +139,8 @@ def check_session():
                 raise AssertionError('Real Sublime LSP session did not initialize in 30 seconds')
             sublime.set_timeout_async(check_session, 1000)
             return
+        require(session.config.initialization_options.get('forge') == session.config.settings.get('forge'), 'Forge settings were not copied to initialization options')
+        state['startup_settings_copied'] = True
         state['sublime_lsp_initialize'] = True
         params = {'textDocument': {'uri': 'file://' + view.file_name()}, 'position': {'line': 1, 'character': 4}}
         session.send_request_async(Request('textDocument/completion', params, view=view), completion, lambda error: finish('LSP completion failed: ' + str(error)))
@@ -206,7 +208,7 @@ def main():
         if args.package_control:
             shutil.copy2(args.package_control, installed / 'Package Control.sublime-package')
         (user / 'Preferences.sublime-settings').write_text(json.dumps({'hot_exit': False, 'remember_open_files': False, 'ignored_packages': ['Vintage']}))
-        (user / 'LSP-Forge.sublime-settings').write_text(json.dumps({'enabled': True, 'command': command}))
+        (user / 'LSP-Forge.sublime-settings').write_text(json.dumps({'command': command}))
         harness = packages / 'ForgeIntegrationTests'
         harness.mkdir(parents=True, exist_ok=True)
         (harness / '.python-version').write_text('3.8')

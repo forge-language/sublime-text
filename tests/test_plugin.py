@@ -1,8 +1,7 @@
-"""Validate modern LSP registration and optional-dependency behavior without Sublime."""
-import contextlib
+"""Validate modern LSP registration and startup configuration behavior without Sublime."""
 import importlib.util
-import io
 import json
+import re
 from pathlib import Path
 import sys
 import types
@@ -32,6 +31,7 @@ class PluginTest(unittest.TestCase):
             def unregister(cls):
                 api.unregistered(cls)
 
+        api.OnPreStartContext = types.SimpleNamespace
         api.LspPlugin = LspPlugin
         modules = {"LSP": lsp if available else None,
                    "LSP.plugin": api if available else None}
@@ -60,29 +60,42 @@ class PluginTest(unittest.TestCase):
         self.assertEqual(plugin.ForgeLspPlugin.name, "LSP-Forge")
         # The base API manages settings resources, user command overrides and
         # process startup; this package must not replace any of those hooks.
-        for override in ("configuration", "on_pre_start_async", "install_or_update",
+        for override in ("configuration", "install_or_update",
                          "needs_update_or_installation", "register", "unregister"):
             self.assertNotIn(override, plugin.ForgeLspPlugin.__dict__)
         self.assertNotIn("register_plugin", plugin.__dict__)
         self.assertNotIn("unregister_plugin", plugin.__dict__)
         api.registered.assert_not_called()
 
-    def test_without_lsp_import_and_unload_are_safe(self):
-        plugin, api = self.load(available=False)
-        with contextlib.redirect_stdout(io.StringIO()) as output:
-            plugin.plugin_loaded()
-            plugin.plugin_unloaded()
-        self.assertIsNone(plugin.ForgeLspPlugin)
-        self.assertIn("LSP is unavailable", output.getvalue())
-        self.assertNotIn("syntax", output.getvalue())
-        api.registered.assert_not_called()
+    def test_missing_required_lsp_raises_import_error(self):
+        with self.assertRaises(ImportError):
+            self.load(available=False)
+
+    def test_startup_copies_resolved_settings_without_aliasing(self):
+        plugin, _ = self.load()
+        forge = {"path": "/custom/forge", "includePaths": ["/project/modules"],
+                 "forgeRoot": "/sdk", "libDir": "/sdk/lib"}
+        initial = {"forge": {"path": "stale"}, "workspaceRoot": "/project"}
+        config = types.SimpleNamespace(
+            settings={"forge": forge},
+            initialization_options=types.SimpleNamespace(set=initial.__setitem__))
+        plugin.ForgeLspPlugin.on_pre_start_async(types.SimpleNamespace(configuration=config))
+        self.assertEqual(initial["forge"], forge)
+        self.assertEqual(initial["workspaceRoot"], "/project")
+        initial["forge"]["includePaths"].append("/other")
+        self.assertEqual(forge["includePaths"], ["/project/modules"])
+        # Restarting the server must reflect the latest resolved user settings.
+        forge["path"] = "/new/forge"
+        plugin.ForgeLspPlugin.on_pre_start_async(types.SimpleNamespace(configuration=config))
+        self.assertEqual(initial["forge"], forge)
 
     def test_default_configuration_and_settings_commands(self):
-        settings = json.loads((ROOT / "LSP-Forge.sublime-settings").read_text())
+        settings = json.loads(re.sub(r"(?m)^\s*//.*$", "", (ROOT / "LSP-Forge.sublime-settings").read_text()))
         self.assertEqual(settings["command"], ["forge-lsp"])
         self.assertEqual(settings["selector"], "source.forge")
-        self.assertEqual(settings["initialization_options"]["forge"], settings["settings"]["forge"])
-        self.assertEqual(set(settings["initialization_options"]["forge"]), {"path", "includePaths", "forgeRoot", "libDir"})
+        self.assertNotIn("enabled", settings)
+        self.assertNotIn("initialization_options", settings)
+        self.assertEqual(set(settings["settings"]["forge"]), {"path", "includePaths", "forgeRoot", "libDir"})
         palette = json.loads((ROOT / "Default.sublime-commands").read_text())
         self.assertEqual(palette[0]["caption"], "Preferences: LSP-Forge Settings")
         menu = json.loads((ROOT / "Main.sublime-menu").read_text())

@@ -1,20 +1,20 @@
 {
-    "enabled": true,
+    // Server executable and arguments. Use an absolute path if it is not on PATH.
     "command": ["forge-lsp"],
+    // Attach the server to files opened with the independent Forge syntax package.
     "selector": "source.forge",
-    "initialization_options": {
-        "forge": {
-            "path": "forge",
-            "includePaths": [],
-            "forgeRoot": "",
-            "libDir": ""
-        }
-    },
+    // Configure Forge here only. The plugin copies these values into the server's
+    // initialization options on startup. Restart the native server after changes.
     "settings": {
         "forge": {
+            // Compiler executable used for diagnostics and document symbols.
             "path": "forge",
+            // Extra module/include directories passed to the compiler with -I.
+            // An empty list lets the server use the workspace root.
             "includePaths": [],
+            // Custom SDK root (bin/include/lib layout). Empty uses auto-detection.
             "forgeRoot": "",
+            // Custom library directory. Empty uses the compiler's default.
             "libDir": ""
         }
     }
